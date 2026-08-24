@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "geoint-insight"
 version = "0.1.0"
-description = "Free, lightweight flood-extent prediction toolkit (multi-model; starts with Sentinel-1 SAR / Sen1Floods11 baseline), provided by GEOINT Insight"
+description = "Free, lightweight flood-extent prediction toolkit (multi-model: Sentinel-1 SAR / Sen1Floods11 baseline, and Sentinel-1+2 / TerraMind), provided by GEOINT Insight"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -28,6 +28,12 @@ dependencies = [
     "tqdm",
 ]
 
+[project.optional-dependencies]
+# Only needed for geoint_insight.multisensor (S1+S2 dual-modality, TerraMind).
+# Kept optional so the base install (sar, SAR-only) stays light — terratorch
+# pulls in a much larger dependency tree.
+multisensor = ["terratorch[tortilla]==1.2.5"]
+
 [project.urls]
 Homepage = "https://geoint-insight.com/foundation/"
 
@@ -38,4 +44,4 @@ geoint-insight = "geoint_insight.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-"geoint_insight.sentinel1" = ["data/*.tif"]
+"geoint_insight.sar" = ["data/*.tif"]

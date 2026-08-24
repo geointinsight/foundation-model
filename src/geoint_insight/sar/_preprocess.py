@@ -5,53 +5,12 @@ import rasterio
 from scipy import ndimage
 
 from .._common.geo import make_safe_profile
+from .._common.sar import S1_SCALE_FACTOR, VH_OFFSET_DB, convert_sar_band_to_db
 
-# dB clip range and VV/VH training-set means the Sen1Floods11 baseline expects.
-S1_SCALE_FACTOR = 10000.0
-S1_VV_MEAN_DB = -12.599
-S1_VH_MEAN_DB = -20.293
-VH_OFFSET_DB = S1_VH_MEAN_DB - S1_VV_MEAN_DB
+# dB clip range this model (Sen1Floods11 baseline) expects — different from
+# TerraMind's [-35, 5], see ../multisensor/_preprocess.py.
 CLIP_MIN = -50.0
 CLIP_MAX = 1.0
-
-
-def convert_sar_band_to_db(band, scale_factor=S1_SCALE_FACTOR, clip_min=CLIP_MIN, clip_max=CLIP_MAX):
-    """Convert one SAR band to dB, auto-detecting whether it's already dB, linear
-    power, or scaled linear power from its own value range (no format flag needed
-    from the caller)."""
-    band = band.astype(np.float32)
-    finite = band[np.isfinite(band)]
-    if finite.size == 0:
-        raise ValueError("S1 band has no usable values")
-
-    eps = np.float32(1e-8)
-    minimum = float(np.min(finite))
-
-    if minimum < -1.0:
-        # Already dB: negative values are normal here (typical VV/VH means are
-        # around -11 to -19 dB), unlike the linear-power branches below where a
-        # value <= 0 really does mean invalid data.
-        mode = "already_db"
-        out = band.copy()
-        invalid = ~np.isfinite(band)
-    else:
-        positive = finite[finite > 0]
-        if positive.size == 0:
-            raise ValueError("S1 band has no usable values")
-        # Median (not max) decides scaling: a single bright pixel (corner
-        # reflector, metal roof) can push max above 2.0 even when the band is
-        # already correctly-scaled linear power with a small median.
-        reference = float(np.median(positive))
-        if reference <= 2.0:
-            mode = "linear_power"
-            out = 10.0 * np.log10(np.maximum(band, eps))
-        else:
-            mode = f"scaled_linear_power/{scale_factor:g}"
-            out = 10.0 * np.log10(np.maximum(band / float(scale_factor), eps))
-        invalid = (~np.isfinite(band)) | (band <= 0)
-
-    out[invalid] = clip_min
-    return np.clip(out, clip_min, clip_max).astype(np.float32), mode
 
 
 def prepare_s1(input_path, output_path, speckle_filter_size=3):
@@ -70,7 +29,7 @@ def prepare_s1(input_path, output_path, speckle_filter_size=3):
         raise ValueError(f"{input_path}: expected 1 or 2 bands, got {raw.shape[0]}")
 
     if raw.shape[0] == 1:
-        vv_db, mode = convert_sar_band_to_db(raw[0])
+        vv_db, mode = convert_sar_band_to_db(raw[0], S1_SCALE_FACTOR, CLIP_MIN, CLIP_MAX)
         vh_db = np.clip(vv_db + VH_OFFSET_DB, CLIP_MIN, CLIP_MAX).astype(np.float32)
         vh_db[vv_db <= CLIP_MIN] = CLIP_MIN
         scale_mode = mode
@@ -89,8 +48,8 @@ def prepare_s1(input_path, output_path, speckle_filter_size=3):
         else:
             vv_idx, vh_idx = 0, 1
 
-        vv_db, vv_mode = convert_sar_band_to_db(raw[vv_idx])
-        vh_db, vh_mode = convert_sar_band_to_db(raw[vh_idx])
+        vv_db, vv_mode = convert_sar_band_to_db(raw[vv_idx], S1_SCALE_FACTOR, CLIP_MIN, CLIP_MAX)
+        vh_db, vh_mode = convert_sar_band_to_db(raw[vh_idx], S1_SCALE_FACTOR, CLIP_MIN, CLIP_MAX)
         scale_mode = f"VV={vv_mode}; VH={vh_mode}"
 
     if speckle_filter_size and speckle_filter_size > 1:

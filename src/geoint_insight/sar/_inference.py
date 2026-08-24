@@ -1,13 +1,12 @@
 """Tiled inference over a prepared 2-band dB Sentinel-1 raster."""
 
-from contextlib import nullcontext
-
 import numpy as np
 import rasterio
 import torch
 from rasterio.windows import Window
 from tqdm.auto import tqdm
 
+from .._common.tiling import autocast_context, create_tile_weight, generate_positions, pad_array
 from ._model import NORM_MEAN, NORM_STD
 from ._preprocess import CLIP_MAX, CLIP_MIN
 
@@ -16,40 +15,6 @@ STRIDE = 256
 
 _NORM_MEAN = np.array(NORM_MEAN, dtype=np.float32)
 _NORM_STD = np.array(NORM_STD, dtype=np.float32)
-
-
-def autocast_context(device):
-    if device.type == "cuda":
-        return torch.autocast(device_type="cuda", dtype=torch.float16)
-    return nullcontext()
-
-
-def generate_positions(full_size, patch_size, stride):
-    if full_size <= patch_size:
-        return [0]
-    positions = list(range(0, full_size - patch_size + 1, stride))
-    last = full_size - patch_size
-    if positions[-1] != last:
-        positions.append(last)
-    return positions
-
-
-def pad_array(array, target_size):
-    """Edge-extend (not zero-pad) so patches smaller than PATCH_SIZE don't create
-    a hard, unrealistic discontinuity at the true scene boundary."""
-    c, h, w = array.shape
-    pad_h, pad_w = target_size - h, target_size - w
-    if pad_h == 0 and pad_w == 0:
-        return array.astype(np.float32)
-    return np.pad(array, ((0, 0), (0, pad_h), (0, pad_w)), mode="edge").astype(np.float32)
-
-
-def create_tile_weight(size):
-    """Pyramidal weight for blending overlapping tiles — highest confidence at
-    the tile center, tapering toward its own edges."""
-    x = np.linspace(-1.0, 1.0, size, dtype=np.float32)
-    w = np.maximum(1.0 - np.abs(x), 0.05)
-    return np.outer(w, w).astype(np.float32)
 
 
 def predict_flood_probability(model, device, s1_path, patch_size=PATCH_SIZE, stride=STRIDE, progress=True):

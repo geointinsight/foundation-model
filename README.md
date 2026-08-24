@@ -2,13 +2,18 @@
 
 Free, lightweight flood-extent prediction toolkit, provided by
 [GEOINT Insight](https://geoint-insight.com/foundation/). Organized as one
-subpackage per model — the first one is **`sentinel1`**, predicting flood
-extent from Sentinel-1 SAR alone using a Sen1Floods11-style S1-only baseline
-model (FCN-ResNet50). No Sentinel-2 imagery required. More models are added
-over time as additional subpackages alongside `geoint_insight.sentinel1`.
+subpackage per model:
+
+- **`sar`** — Sentinel-1 SAR only (Sen1Floods11 baseline, FCN-ResNet50).
+  No Sentinel-2 imagery required.
+- **`multisensor`** — Sentinel-1 + Sentinel-2 dual-modality (TerraMind
+  foundation model). Both bands are required; needs the optional
+  `multisensor` extra.
+
+More models are added over time as additional subpackages.
 
 Each model subpackage is a lightweight subset of a larger internal pipeline.
-For `sentinel1`, not included here:
+Not included here:
 
 - **Test-time augmentation** (averaging predictions over flipped/rotated views)
 - **Adaptive spatial thresholding** (smoothly-varying threshold across one large scene)
@@ -22,8 +27,8 @@ prepare → infer → threshold → clean → export pipeline.
 
 ## Install
 
-This repo uses [Git LFS](https://git-lfs.github.com) to store the model
-checkpoint, so install that first (once per machine):
+This repo uses [Git LFS](https://git-lfs.github.com) to store the `sar`
+model checkpoint, so install that first (once per machine):
 
 ```bash
 brew install git-lfs      # macOS; see git-lfs.github.com for other platforms
@@ -39,17 +44,29 @@ pip install -e .
 ```
 
 This installs the `geoint_insight` Python package and a `geoint-insight` CLI
-command. The checkpoint (`checkpoints/sen1floods11_s1_baseline_fcn_resnet50.cp`)
-and a small real Sentinel-1 sample scene are already included, so you can try
-it immediately without sourcing anything yourself — see Quickstart below.
+command. The `sar` checkpoint
+(`checkpoints/sen1floods11_s1_baseline_fcn_resnet50.cp`) and a small real
+Sentinel-1 sample scene are already included, so you can try `sar`
+immediately without sourcing anything yourself — see Quickstart below.
 
 If you only have the checkpoint pointer (e.g. you cloned without Git LFS
 installed first), run `git lfs pull` inside the repo to fetch the real file.
 
+To use `multisensor`, install the extra and get its checkpoint separately
+(it's ~1.2GB — too large for this repo's Git LFS quota, so it's distributed
+via [Releases](https://github.com/geointinsight/foundation-model/releases)
+instead):
+
+```bash
+pip install -e ".[multisensor]"
+# download the TerraMind checkpoint from the Releases page above,
+# then place it under ./checkpoints/
+```
+
 ## Quickstart
 
 ```bash
-geoint-insight sentinel1 --sample --output-dir outputs/
+geoint-insight sar --sample --output-dir outputs/
 ```
 
 Runs the bundled sample scene end to end and writes results under
@@ -62,13 +79,15 @@ Every model is a required subcommand — there's no default model, since
 different models expect different inputs.
 
 ```bash
-geoint-insight sentinel1 --s1 path/to/S1.tif --output-dir outputs/
-geoint-insight sentinel1 --s1 scene1.tif --s1 scene2.tif --device cpu
-geoint-insight sentinel1 --s1 scene.tif --threshold 0.6 --no-auto-threshold
+geoint-insight sar --s1 path/to/S1.tif --output-dir outputs/
+geoint-insight sar --s1 scene1.tif --s1 scene2.tif --device cpu
+geoint-insight sar --s1 scene.tif --threshold 0.6 --no-auto-threshold
+
+geoint-insight multisensor --s1 path/to/S1.tif --s2 path/to/S2.tif --output-dir outputs/
 ```
 
-Run `geoint-insight --help` or `geoint-insight sentinel1 --help` for the full
-flag list.
+Run `geoint-insight --help`, `geoint-insight sar --help`, or
+`geoint-insight multisensor --help` for the full flag list.
 
 ## Python API
 
@@ -76,7 +95,7 @@ Either import a model's subpackage directly, or use the unified `predict()`,
 which always requires naming the model explicitly:
 
 ```python
-from geoint_insight.sentinel1 import predict_scene, predict_folder, sample_path
+from geoint_insight.sar import predict_scene, predict_folder, sample_path
 
 result = predict_scene(sample_path(), "outputs/")   # bundled sample, zero setup
 print(result.flood_area_km2, result.threshold, result.polygon_path)
@@ -88,14 +107,24 @@ results = predict_folder("scenes/", "outputs/", pattern="*.tif")
 ```
 
 ```python
+from geoint_insight.multisensor import predict_scene
+
+result = predict_scene("path/to/S1.tif", "path/to/S2.tif", "outputs/")
+```
+
+```python
 from geoint_insight import predict
 
-result = predict(model="sentinel1", s1_path="path/to/S1.tif", output_dir="outputs/")
+result = predict(model="sar", s1_path="path/to/S1.tif", output_dir="outputs/")
+result = predict(model="multisensor", s1_path="path/to/S1.tif", s2_path="path/to/S2.tif", output_dir="outputs/")
 ```
 
 `s1_path` must be a 1- or 2-band Sentinel-1 GeoTIFF (VV, or VV+VH). A single
 band is treated as VV and VH is approximated from Sen1Floods11 training
-statistics — expect lower accuracy than genuine VV+VH input.
+statistics — expect lower accuracy than genuine VV+VH input. `s2_path` (for
+`multisensor`) must be a 3-, 4-, or 13-band Sentinel-2 GeoTIFF — anything
+short of the full 13 L1C bands is filled in with training-set band means and
+should be treated as prototype quality.
 
 ## Output
 
@@ -115,19 +144,23 @@ wet, or smooth surfaces (wet soil, freshly-plowed fields, etc).
 ```
 src/geoint_insight/
   __init__.py       top-level predict(model=..., ...) unified entry point
-  _common/          shared helpers (geo/CRS, thresholding, mask cleanup, export) — model-agnostic
-  sentinel1/         this model: preprocessing, model loading, inference, pipeline, CLI
-    cli.py            add_subparser(subparsers) registers `geoint-insight sentinel1 ...`
+  _common/          shared helpers (geo/CRS, tiling, SAR dB conversion,
+                    thresholding, mask cleanup, export) — model-agnostic
+  sar/               S1-only model: preprocessing, model, inference, pipeline, CLI
+  multisensor/       S1+S2 model: same shape as sar
+    cli.py            add_subparser(subparsers) registers `geoint-insight multisensor ...`
   cli.py            top-level CLI dispatcher — new models register by adding
                     one line to _SUBCOMMAND_MODULES
 ```
 
-A new model subpackage should expose the same shape as `sentinel1`:
+A new model subpackage should expose the same shape as `sar`/`multisensor`:
 `predict_scene()`, `predict_folder()`, `load_model()`, a `SceneResult`
 dataclass, and a `cli.py` with `add_subparser(subparsers)` — then register its
 package name in both `geoint_insight/cli.py`'s `_SUBCOMMAND_MODULES` and
 `geoint_insight/__init__.py`'s `AVAILABLE_MODELS` (the latter is what
-`predict(model=...)` checks against).
+`predict(model=...)` checks against). Put anything genuinely model-agnostic
+(tiling, generic raster helpers, thresholding/cleaning/export) in `_common/`
+rather than duplicating it per model.
 
 ## About
 

@@ -1,7 +1,7 @@
-"""sentinel1 subcommand: geoint-insight sentinel1 --s1 path/to/S1.tif --output-dir outputs/
+"""sar subcommand: geoint-insight sar --s1 path/to/S1.tif --output-dir outputs/
 
 Also runnable standalone (kept working for anyone scripting directly against
-this subpackage): python -m geoint_insight.sentinel1.cli --s1 ...
+this subpackage): python -m geoint_insight.sar.cli --s1 ...
 """
 
 import json
@@ -20,8 +20,8 @@ HELP = "Sentinel-1 SAR flood-extent prediction (Sen1Floods11 baseline)"
 
 def add_arguments(parser):
     """Add this model's flags to an argparse parser (used both for the
-    `geoint-insight sentinel1 ...` subcommand and for standalone `python -m
-    geoint_insight.sentinel1.cli` use)."""
+    `geoint-insight sar ...` subcommand and for standalone `python -m
+    geoint_insight.sar.cli` use)."""
     parser.add_argument("--s1", type=Path, action="append", help="Path to a Sentinel-1 GeoTIFF (VV/VH). Repeatable for multiple scenes.")
     parser.add_argument("--sample", action="store_true", help="Use the small bundled sample scene instead of --s1 (quick way to try the tool)")
     parser.add_argument("--output-dir", type=Path, default=Path("outputs"), help="Where to write results")
@@ -45,8 +45,8 @@ def add_arguments(parser):
 
 
 def add_subparser(subparsers):
-    """Register this model as a `geoint-insight sentinel1 ...` subcommand."""
-    parser = subparsers.add_parser("sentinel1", help=HELP, formatter_class=__import__("argparse").ArgumentDefaultsHelpFormatter)
+    """Register this model as a `geoint-insight sar ...` subcommand."""
+    parser = subparsers.add_parser("sar", help=HELP, formatter_class=__import__("argparse").ArgumentDefaultsHelpFormatter)
     return add_arguments(parser)
 
 
@@ -100,7 +100,7 @@ def run(args):
 
 
 def main(argv=None):
-    """Standalone entry point (python -m geoint_insight.sentinel1.cli)."""
+    """Standalone entry point (python -m geoint_insight.sar.cli)."""
     import argparse
 
     parser = argparse.ArgumentParser(description=HELP, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
