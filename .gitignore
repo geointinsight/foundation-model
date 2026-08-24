@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+.venv/
+.DS_Store
+
+# Model checkpoints (*.cp) are tracked via Git LFS — see .gitattributes.
