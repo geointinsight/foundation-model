@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "geoint-insight"
+version = "0.1.0"
+description = "Free, lightweight flood-extent prediction toolkit (multi-model; starts with Sentinel-1 SAR / Sen1Floods11 baseline), provided by GEOINT Insight"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "GEOINT Insight", email = "geoint.insight@gmail.com" },
+]
+maintainers = [
+    { name = "GEOINT Insight", email = "geoint.insight@gmail.com" },
+]
+dependencies = [
+    "numpy",
+    "torch",
+    "torchvision",
+    "rasterio",
+    "geopandas",
+    "shapely",
+    "scipy",
+    "pandas",
+    "matplotlib",
+    "tqdm",
+]
+
+[project.urls]
+Homepage = "https://geoint-insight.com/foundation/"
+
+[project.scripts]
+geoint-insight = "geoint_insight.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"geoint_insight.sentinel1" = ["data/*.tif"]
