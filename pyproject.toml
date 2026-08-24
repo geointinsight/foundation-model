@@ -45,3 +45,4 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "geoint_insight.sar" = ["data/*.tif"]
+"geoint_insight.multisensor" = ["data/*.tif"]

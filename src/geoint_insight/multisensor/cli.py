@@ -10,6 +10,7 @@ from pathlib import Path
 import pandas as pd
 
 from .._common.postprocess import AUTO_THRESHOLD_MULTIPLIER, FLOOD_THRESHOLD, MAX_HOLE_PIXELS, MIN_COMPONENT_PIXELS, MIN_POLYGON_AREA_M2
+from ._data import sample_s1_path, sample_s2_path
 from ._inference import PATCH_SIZE, STRIDE
 from .pipeline import load_model, predict_scene
 
@@ -17,8 +18,9 @@ HELP = "Sentinel-1 + Sentinel-2 flood-extent prediction (TerraMind, dual-modalit
 
 
 def add_arguments(parser):
-    parser.add_argument("--s1", type=Path, required=True, help="Path to a Sentinel-1 GeoTIFF (VV/VH)")
-    parser.add_argument("--s2", type=Path, required=True, help="Path to a Sentinel-2 GeoTIFF (3, 4, or 13 bands)")
+    parser.add_argument("--s1", type=Path, default=None, help="Path to a Sentinel-1 GeoTIFF (VV/VH)")
+    parser.add_argument("--s2", type=Path, default=None, help="Path to a Sentinel-2 GeoTIFF (3, 4, or 13 bands)")
+    parser.add_argument("--sample", action="store_true", help="Use the small bundled sample S1+S2 pair instead of --s1/--s2 (quick way to try the tool)")
     parser.add_argument("--scene-id", default=None, help="Scene identifier for output filenames (default: S1 filename stem)")
     parser.add_argument("--output-dir", type=Path, default=Path("outputs"), help="Where to write results")
     parser.add_argument("--checkpoint", type=Path, default=None, help="Path to the TerraMind .ckpt checkpoint (default: auto-discover under ./checkpoints/)")
@@ -46,14 +48,21 @@ def add_subparser(subparsers):
 
 
 def run(args):
+    s1_path, s2_path = args.s1, args.s2
+    if args.sample:
+        s1_path, s2_path = sample_s1_path(), sample_s2_path()
+    if not s1_path or not s2_path:
+        print("No input given — pass both --s1 and --s2, or --sample to try the bundled example.", file=sys.stderr)
+        return 1
+
     model, device, checkpoint_path = load_model(args.checkpoint, args.device)
     print(f"Loaded checkpoint: {checkpoint_path}")
     print(f"Device: {device}")
 
-    print(f"\n=== S1: {args.s1}  |  S2: {args.s2} ===")
+    print(f"\n=== S1: {s1_path}  |  S2: {s2_path} ===")
     result = predict_scene(
-        args.s1,
-        args.s2,
+        s1_path,
+        s2_path,
         args.output_dir,
         scene_id=args.scene_id,
         model=model,
