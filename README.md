@@ -22,17 +22,39 @@ prepare → infer → threshold → clean → export pipeline.
 
 ## Install
 
+This repo uses [Git LFS](https://git-lfs.github.com) to store the model
+checkpoint, so install that first (once per machine):
+
 ```bash
+brew install git-lfs      # macOS; see git-lfs.github.com for other platforms
+git lfs install
+```
+
+Then clone and install:
+
+```bash
+git clone https://github.com/geointinsight/foundation-model.git
+cd foundation-model
 pip install -e .
 ```
 
 This installs the `geoint_insight` Python package and a `geoint-insight` CLI
-command. A small real Sentinel-1 sample scene is bundled in, so you can try it
-immediately without sourcing your own data (see `--sample` below). For your
-own scenes, download the S1-only baseline checkpoint from this repo's
-[Releases](https://github.com/geointinsight/foundation-model/releases) page
-and place it under `./checkpoints/` (or pass `--checkpoint` /
-`checkpoint_path=` explicitly).
+command. The checkpoint (`checkpoints/sen1floods11_s1_baseline_fcn_resnet50.cp`)
+and a small real Sentinel-1 sample scene are already included, so you can try
+it immediately without sourcing anything yourself — see Quickstart below.
+
+If you only have the checkpoint pointer (e.g. you cloned without Git LFS
+installed first), run `git lfs pull` inside the repo to fetch the real file.
+
+## Quickstart
+
+```bash
+geoint-insight sentinel1 --sample --output-dir outputs/
+```
+
+Runs the bundled sample scene end to end and writes results under
+`outputs/outputs/` (probability raster, mask, polygon, preview PNG — see
+Output below).
 
 ## CLI
 
@@ -40,7 +62,6 @@ Every model is a required subcommand — there's no default model, since
 different models expect different inputs.
 
 ```bash
-geoint-insight sentinel1 --sample --output-dir outputs/                 # try it with the bundled sample
 geoint-insight sentinel1 --s1 path/to/S1.tif --output-dir outputs/
 geoint-insight sentinel1 --s1 scene1.tif --s1 scene2.tif --device cpu
 geoint-insight sentinel1 --s1 scene.tif --threshold 0.6 --no-auto-threshold
