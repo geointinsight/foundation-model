@@ -12,25 +12,24 @@ capability area, each with one subpackage per model sharing a consistent
 
 ## Install
 
-This repo uses [Git LFS](https://git-lfs.github.com) to store model
-checkpoints, so install that first (once per machine):
-
-```bash
-brew install git-lfs      # macOS; see git-lfs.github.com for other platforms
-git lfs install
-```
-
-Then clone and install:
-
 ```bash
 git clone https://github.com/geointinsight/foundation-model.git
 cd foundation-model
 pip install -e .
+geoint-insight setup
 ```
 
 This installs the `geoint_insight` Python package and a `geoint-insight` CLI
-command. See each capability area below for what's bundled and what needs a
-separate download.
+command, then downloads the model checkpoints into `./checkpoints/`. Model
+weights aren't stored in the repo itself (too large for git) — `geoint-insight
+setup` fetches them from GEOINT Insight's shared storage on demand and skips
+re-downloading if they're already present. Sample input scenes (small, real)
+are bundled directly in the package, so `--sample` works right after `setup`
+completes.
+
+A plain `requirements.txt` is also provided if you'd rather manage
+dependencies without installing the package itself — see each capability area
+below for what's included in the base install vs. optional extras.
 
 ---
 
@@ -59,24 +58,22 @@ prepare → infer → threshold → clean → export pipeline.
 
 ### Setup
 
-The `sar` checkpoint (`checkpoints/sen1floods11_s1_baseline_fcn_resnet50.cp`)
-and a small real Sentinel-1 sample scene are already included via Git LFS, so
-you can try `sar` immediately without sourcing anything yourself — see
-Quickstart below.
+`geoint-insight setup` (see Install above) downloads both checkpoints into
+`./checkpoints/`:
 
-If you only have the checkpoint pointer (e.g. you cloned without Git LFS
-installed first), run `git lfs pull` inside the repo to fetch the real file.
+- `sar_geoint_insight.cp` — Sen1Floods11 baseline (FCN-ResNet50)
+- `multisensor_geoint_insight.ckpt` — TerraMind (S1+S2)
 
-To use `multisensor`, install the extra and get its checkpoint separately
-(it's ~1.2GB — too large for this repo's Git LFS quota, so it's distributed
-via [Releases](https://github.com/geointinsight/foundation-model/releases)
-instead). A bundled real S1+S2 sample pair is included, so `--sample` works
-as soon as the checkpoint is in place:
+A small real Sentinel-1 sample scene (for `sar`) and a real S1+S2 sample pair
+(for `multisensor`) are bundled directly in the package, so `--sample` works
+for both models as soon as `setup` finishes — no separate data download
+needed.
+
+`multisensor` additionally needs the optional extra installed (terratorch is
+a much larger dependency, so it's not part of the base install):
 
 ```bash
 pip install -e ".[multisensor]"
-# download the TerraMind checkpoint from the Releases page above,
-# then place it under ./checkpoints/
 ```
 
 ### Quickstart
@@ -179,6 +176,7 @@ Coming soon.
 ```
 src/geoint_insight/
   __init__.py       top-level predict(model=..., ...) unified entry point
+  _setup.py         `geoint-insight setup` — downloads checkpoints into ./checkpoints/
   _common/          shared helpers (geo/CRS, tiling, SAR dB conversion,
                     thresholding, mask cleanup, export) — model-agnostic
   sar/               S1-only flood model: preprocessing, model, inference, pipeline, CLI

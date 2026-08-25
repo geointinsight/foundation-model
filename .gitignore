@@ -6,4 +6,7 @@ dist/
 .venv/
 .DS_Store
 
-# Model checkpoints (*.cp) are tracked via Git LFS — see .gitattributes.
+# Model checkpoints are not committed to the repo — they're downloaded on
+# demand via `geoint-insight setup` (see _setup.py). Keep the folder itself
+# out of git entirely.
+checkpoints/

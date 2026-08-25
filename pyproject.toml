@@ -26,6 +26,7 @@ dependencies = [
     "pandas",
     "matplotlib",
     "tqdm",
+    "gdown",
 ]
 
 [project.optional-dependencies]

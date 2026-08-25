@@ -1,0 +1,22 @@
+# Core dependencies for geoint-insight (Flood Detection: sar model).
+# Install with: pip install -r requirements.txt
+# Or, preferably, install the package itself so the CLI/imports work: pip install -e .
+#
+# Requires Python >= 3.10.
+
+numpy==2.4.6
+torch==2.13.0
+torchvision==0.28.0
+rasterio==1.4.4
+geopandas==1.1.4
+shapely==2.1.2
+scipy==1.17.1
+pandas==3.0.5
+matplotlib==3.11.1
+tqdm==4.70.0
+gdown==6.1.0
+
+# --- Optional: multisensor model (Sentinel-1 + Sentinel-2, TerraMind) ---
+# Not required for the sar model. Install separately if you need multisensor:
+#   pip install terratorch[tortilla]==1.2.5
+# terratorch[tortilla]==1.2.5

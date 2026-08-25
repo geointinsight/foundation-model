@@ -10,10 +10,9 @@ GROUPNORM_GROUPS = 16
 NORM_MEAN = [0.6851, 0.5235]
 NORM_STD = [0.0820, 0.1102]
 
-CHECKPOINT_URL = (
-    "https://github.com/geointinsight/foundation-model/releases/download/"
-    "v0.1.0/sen1floods11_s1_baseline_fcn_resnet50.cp"
-)
+# Canonical checkpoint filename this model looks for after `geoint-insight
+# setup` — see ../_setup.py.
+CHECKPOINT_NAME = "sar_geoint_insight.cp"
 
 
 def resolve_device(preferred=None):
@@ -45,11 +44,12 @@ def discover_checkpoint(search_dirs=None, explicit_path=None):
     candidates = sorted(set(candidates), key=lambda p: p.stat().st_mtime, reverse=True)
     if not candidates:
         raise FileNotFoundError(
-            "No .cp checkpoint found. Download the Sen1Floods11 S1-only baseline "
-            f"checkpoint from:\n  {CHECKPOINT_URL}\n"
-            "and place it under ./checkpoints/, or pass checkpoint_path explicitly."
+            f"No .cp checkpoint found (expected {CHECKPOINT_NAME}). Run:\n"
+            "  geoint-insight setup\n"
+            "to download it, or pass checkpoint_path explicitly."
         )
-    return candidates[0]
+    named = [p for p in candidates if p.name == CHECKPOINT_NAME]
+    return named[0] if named else candidates[0]
 
 
 def build_baseline_model():
