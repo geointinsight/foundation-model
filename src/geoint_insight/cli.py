@@ -12,8 +12,9 @@ file's logic, only its registration list.
 
 import argparse
 import sys
+from pathlib import Path
 
-_SUBCOMMAND_MODULES = ["sar", "multisensor"]  # add new model package names here as they're added
+_SUBCOMMAND_MODULES = ["sar", "multisensor", "rice"]  # add new model package names here as they're added
 
 
 def _load_subcommand(name):
@@ -22,9 +23,11 @@ def _load_subcommand(name):
 
 
 def _run_setup(args):
-    from ._setup import download_checkpoints
+    from ._setup import download_checkpoints, download_rice_checkpoint
 
     download_checkpoints(args.dest, args.force)
+    if args.rice:
+        download_rice_checkpoint(str(Path(args.dest) / "rice"), args.force)
     return 0
 
 
@@ -35,13 +38,14 @@ def _add_setup_subparser(subparsers):
     )
     parser.add_argument("--dest", default="checkpoints", help="Where to place checkpoint files")
     parser.add_argument("--force", action="store_true", help="Re-download even if checkpoints already exist")
+    parser.add_argument("--rice", action="store_true", help="Also download the rice checkpoint into <dest>/rice/ (needs the 'rice' extra)")
     parser.set_defaults(func=_run_setup)
 
 
 def build_parser():
     parser = argparse.ArgumentParser(
         prog="geoint-insight",
-        description="GEOINT Insight — free, lightweight flood-extent prediction toolkit (multi-model).",
+        description="GEOINT Insight — free, lightweight geospatial AI toolkit (multi-model).",
     )
     subparsers = parser.add_subparsers(dest="model", required=True)
     _add_setup_subparser(subparsers)

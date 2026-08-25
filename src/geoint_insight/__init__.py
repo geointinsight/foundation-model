@@ -1,11 +1,13 @@
-"""geoint_insight — free, lightweight flood-extent prediction toolkit, provided
+"""geoint_insight — free, lightweight geospatial AI toolkit, provided
 by GEOINT Insight (https://geoint-insight.com/foundation/).
 
 Organized as one subpackage per model:
 
-  - sar          — Sentinel-1 SAR only (Sen1Floods11 baseline)
-  - multisensor  — Sentinel-1 + Sentinel-2 dual-modality (TerraMind; requires
-                   the optional 'multisensor' extra, pip install -e ".[multisensor]")
+  - sar          — Sentinel-1 SAR only flood extent (Sen1Floods11 baseline)
+  - multisensor  — Sentinel-1 + Sentinel-2 dual-modality flood extent (TerraMind;
+                   requires the optional 'multisensor' extra, pip install -e ".[multisensor]")
+  - rice         — Multitemporal Sentinel-2 rice extent (TerraMind, fine-tuned
+                   per dataset; requires the optional 'rice' extra, pip install -e ".[rice]")
 
 Import a model's subpackage directly:
 
@@ -14,6 +16,9 @@ Import a model's subpackage directly:
 
     from geoint_insight.multisensor import predict_scene
     result = predict_scene("S1.tif", "S2.tif", "outputs/")
+
+    from geoint_insight.rice import predict_stacks_folder
+    result = predict_stacks_folder("stacks_10m/", "outputs/", checkpoint_path="path/to/model_dir")
 
 ...or use the unified top-level predict(), which always requires naming the
 model explicitly (since which model applies is never implicit — different
@@ -26,6 +31,7 @@ Or from the command line:
 
     geoint-insight sar --sample --output-dir outputs/
     geoint-insight multisensor --s1 S1.tif --s2 S2.tif --output-dir outputs/
+    geoint-insight rice --stack-dir stacks_10m/ --output-dir outputs/
 
 More models are added over time as additional subpackages — see
 geoint_insight/cli.py for how a new model registers its own CLI subcommand,
@@ -36,7 +42,7 @@ import importlib
 
 __version__ = "0.1.0"
 
-AVAILABLE_MODELS = ["sar", "multisensor"]
+AVAILABLE_MODELS = ["sar", "multisensor", "rice"]
 
 __all__ = ["__version__", "AVAILABLE_MODELS", "predict"]
 

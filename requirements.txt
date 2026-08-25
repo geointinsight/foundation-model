@@ -20,3 +20,10 @@ gdown==6.1.0
 # Not required for the sar model. Install separately if you need multisensor:
 #   pip install terratorch[tortilla]==1.2.5
 # terratorch[tortilla]==1.2.5
+
+# --- Optional: rice model (multitemporal Sentinel-2, TerraMind) ---
+# Pinned to a different terratorch version than multisensor above — don't
+# install both extras in the same environment without checking compatibility.
+#   pip install terratorch==1.2.10 huggingface_hub>=0.27
+# terratorch==1.2.10
+# huggingface_hub>=0.27

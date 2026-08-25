@@ -38,3 +38,11 @@ def create_tile_weight(size):
     x = np.linspace(-1.0, 1.0, size, dtype=np.float32)
     w = np.maximum(1.0 - np.abs(x), 0.05)
     return np.outer(w, w).astype(np.float32)
+
+
+def create_hann_weight(size):
+    """Hann-window weight for blending overlapping tiles — same purpose as
+    create_tile_weight (favor tile centers over edges) with a smoother rolloff.
+    Used by models fine-tuned with this exact blending scheme."""
+    w = np.maximum(np.hanning(size).astype(np.float32), 0.05)
+    return np.outer(w, w).astype(np.float32)

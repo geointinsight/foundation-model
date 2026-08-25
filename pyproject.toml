@@ -34,6 +34,11 @@ dependencies = [
 # Kept optional so the base install (sar, SAR-only) stays light — terratorch
 # pulls in a much larger dependency tree.
 multisensor = ["terratorch[tortilla]==1.2.5"]
+# Only needed for geoint_insight.rice (multitemporal S2, TerraMind). Pinned to
+# a different terratorch version than multisensor's extra (the rice model was
+# fine-tuned against a newer terratorch release) — don't install both extras
+# in the same environment without checking they still agree.
+rice = ["terratorch==1.2.10", "huggingface_hub>=0.27"]
 
 [project.urls]
 Homepage = "https://geoint-insight.com/foundation/"

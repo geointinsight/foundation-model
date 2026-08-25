@@ -6,7 +6,7 @@ capability area, each with one subpackage per model sharing a consistent
 `predict_scene()` / `predict_folder()` API.
 
 - [Flood Detection](#flood-detection) — available now
-- Rice Classification — coming soon
+- [Rice Classification](#rice-classification) — available now
 - Building Detection — coming soon
 - Road Detection — coming soon
 
@@ -159,7 +159,116 @@ wet, or smooth surfaces (wet soil, freshly-plowed fields, etc).
 
 ## Rice Classification
 
-Coming soon.
+Predicts rice extent from a **multitemporal stack** of Sentinel-2 scenes (one
+GeoTIFF per acquisition date, all on the same grid) using a TerraMind
+checkpoint fine-tuned per dataset.
+
+Unlike `sar`/`multisensor`, a rice checkpoint isn't one portable file — it's a
+directory of three files that must ship together:
+
+```text
+<model_dir>/
+├── best.ckpt                  (or last.ckpt / *rice*iou*.ckpt)
+├── training_config.json       # timestamps, recommended probability threshold
+└── normalization_stats.json   # band_names, means, stds
+```
+
+There's no bundled sample scene yet, but the checkpoint itself downloads the
+same way sar/multisensor's do — see Setup below. Validated against the real
+fine-tuned checkpoint + real Sentinel-2 crops (Prathumthanee, Thailand):
+detected rice extent lines up closely with the visible paddy field boundaries
+in the source imagery.
+
+Needs the optional `rice` extra (a different terratorch version than
+`multisensor` — don't install both extras in one environment without checking
+they still agree):
+
+```bash
+pip install -e ".[rice]"
+```
+
+### Setup
+
+```bash
+geoint-insight setup --rice
+```
+
+Downloads `rice_geoint_insight.ckpt` + `training_config.json` +
+`normalization_stats.json` into `./checkpoints/rice/` (skipped by default
+`geoint-insight setup` since it's a separate, larger, dataset-specific
+checkpoint — see Rice Classification's own note on this above). You still
+need to supply your own multitemporal Sentinel-2 stack — this only provides
+the model.
+
+### CLI
+
+```bash
+geoint-insight rice --stacks 2026-03-13_STACK.tif 2026-03-26_STACK.tif --checkpoint path/to/model_dir --output-dir outputs/
+geoint-insight rice --stack-dir stacks_10m/ --valid-mask-dir valid_masks_10m/ --checkpoint path/to/model_dir --output-dir outputs/
+```
+
+`--stacks` takes an explicit ordered list of per-date files. `--stack-dir`
+instead auto-discovers stacks by a `YYYYMMDD` date in each filename (glob
+`--stack-glob`, default `*STACK*.tif`), restricted to `--timestamps` if given,
+else the checkpoint's own `training_config.json` timestamps, else every date
+found. `--checkpoint` can be omitted once `geoint-insight setup --rice` has
+run (auto-discovered from `./checkpoints/rice/`). Run `geoint-insight rice
+--help` for the full flag list.
+
+### Python API
+
+```python
+from geoint_insight.rice import load_model, predict_scene, predict_stacks_folder
+
+model, device, config = load_model(checkpoint_path="path/to/model_dir")
+
+result = predict_scene(
+    ["2026-03-13_STACK.tif", "2026-03-26_STACK.tif"], "outputs/",
+    model=model, device=device, config=config,
+)
+
+# Or auto-discover per-date stacks in a folder:
+result = predict_stacks_folder("stacks_10m/", "outputs/", checkpoint_path="path/to/model_dir")
+
+print(result.rice_area_rai, result.threshold, result.probability_path)
+```
+
+### Output
+
+Per scene, under `<output_dir>/outputs/`:
+
+- `01_rice_probability.tif` — per-pixel rice probability (float32, NaN = no data)
+- `02_rice_mask_raw.tif` / `03_rice_mask_clean.tif` — thresholded masks
+  before/after sieving out small objects (`--min-object-area-m2`)
+- `04_rice_polygons.gpkg` — vectorized rice extent with `area_m2`/`area_rai`
+  (only written with `--export-vector`; off by default since a full scene can
+  produce a large number of polygons)
+- `05_rice_prediction_preview.png` — downsampled RGB + probability + mask preview
+
+Area is reported in both km² and *rai* (1 rai = 1,600 m², the standard Thai
+land-area unit this model was built for).
+
+### Running on a different area
+
+Nothing in the code is hardcoded to one location — point `--stacks`/`--stack-dir`
+at any other area's Sentinel-2 stack and it runs. A few things affect how well
+it generalizes:
+
+- **Bands**: still needs `B02/B03/B04/B8A/B11/B12` (or a 10+ band stack they
+  can be resolved from) at 10 m resolution.
+- **Normalization is region-specific**: `normalization_stats.json`'s
+  means/stds were computed from the training area's own imagery (Prathumthanee,
+  Thailand). Other Thai rice-growing areas with similar soil/crop conditions
+  should still work reasonably; visually very different regions (different
+  country, different crop, very different terrain) will likely see reduced
+  accuracy since the input z-normalization no longer matches what the model
+  saw in training — treat those as prototype results and check them visually
+  before trusting them, same caveat as the flood models.
+- **Timestamps should match local phenology**: the checkpoint was trained on
+  6 dates spanning dry season through early wet season (land prep through
+  active growth). A new area's growing calendar may differ — pick dates that
+  cover a similar planting → growth → pre-harvest arc rather than matching
+  the exact same calendar dates.
 
 ## Building Detection
 
@@ -181,6 +290,9 @@ src/geoint_insight/
                     thresholding, mask cleanup, export) — model-agnostic
   sar/               S1-only flood model: preprocessing, model, inference, pipeline, CLI
   multisensor/       S1+S2 flood model: same shape as sar
+  rice/              Multitemporal S2 rice model: same shape as sar, but a
+                    checkpoint is a directory (see Rice Classification above)
+                    and predict_scene() takes an ordered list of stack paths
     cli.py            add_subparser(subparsers) registers `geoint-insight multisensor ...`
   cli.py            top-level CLI dispatcher — new models register by adding
                     one line to _SUBCOMMAND_MODULES
