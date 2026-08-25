@@ -1,11 +1,11 @@
 """rice subcommand: geoint-insight rice --stacks 2026-03-13.tif 2026-03-26.tif --output-dir outputs/
 or geoint-insight rice --stack-dir stacks_10m/ --output-dir outputs/
+or geoint-insight rice --sample --output-dir outputs/
 
 Also runnable standalone: python -m geoint_insight.rice.cli --stack-dir ...
 
-Unlike sar/multisensor, there's no bundled sample yet — the rice model needs a
-checkpoint directory (checkpoint + training_config.json + normalization_stats.json)
-and a matching multitemporal Sentinel-2 stack that must be supplied explicitly.
+Needs a rice checkpoint directory (checkpoint + training_config.json +
+normalization_stats.json) — fetch one with `geoint-insight setup --rice`.
 """
 
 import json
@@ -14,6 +14,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from ._data import sample_stack_paths
 from ._inference import MIN_PATCH_VALID_RATIO, PATCH_SIZE, STRIDE
 from ._postprocess import MIN_OBJECT_AREA_M2
 from .pipeline import load_model, predict_scene, predict_stacks_folder
@@ -24,6 +25,7 @@ HELP = "Multitemporal Sentinel-2 rice-extent prediction (TerraMind)"
 def add_arguments(parser):
     parser.add_argument("--stacks", type=Path, nargs="+", default=None, help="Explicit ordered list of per-date stack GeoTIFFs (same grid, one per timestamp)")
     parser.add_argument("--stack-dir", type=Path, default=None, help="Directory of per-date stack GeoTIFFs to auto-discover instead of --stacks")
+    parser.add_argument("--sample", action="store_true", help="Use the small bundled sample stack instead of --stacks/--stack-dir (quick way to check the tool runs — only one real date is bundled, so expect ~0 rice detected, see README)")
     parser.add_argument("--stack-glob", default="*STACK*.tif", help="Glob used with --stack-dir")
     parser.add_argument("--valid-mask-dir", type=Path, default=None, help="Optional directory of per-date valid-pixel masks (matched by date)")
     parser.add_argument("--valid-mask-glob", default="*.tif", help="Glob used with --valid-mask-dir")
@@ -53,8 +55,11 @@ def add_subparser(subparsers):
 
 
 def run(args):
-    if not args.stacks and not args.stack_dir:
-        print("No input given — pass --stacks (ordered list of files) or --stack-dir.", file=sys.stderr)
+    stacks = args.stacks
+    if args.sample:
+        stacks = sample_stack_paths()
+    if not stacks and not args.stack_dir:
+        print("No input given — pass --stacks (ordered list of files), --stack-dir, or --sample.", file=sys.stderr)
         return 1
 
     model, device, config = load_model(args.checkpoint, args.device)
@@ -79,9 +84,9 @@ def run(args):
         stride=args.stride,
     )
 
-    if args.stacks:
-        print(f"\n=== Stacks: {[str(p) for p in args.stacks]} ===")
-        result = predict_scene(args.stacks, args.output_dir, **predict_kwargs)
+    if stacks:
+        print(f"\n=== Stacks: {[str(p) for p in stacks]} ===")
+        result = predict_scene(stacks, args.output_dir, **predict_kwargs)
     else:
         print(f"\n=== Stack dir: {args.stack_dir} ===")
         result = predict_stacks_folder(
