@@ -277,11 +277,11 @@ it generalizes:
 
 ## Building Detection
 
-Coming soon.
+Coming soon...
 
 ## Road Detection
 
-Coming soon.
+Coming soon...
 
 ---
 
