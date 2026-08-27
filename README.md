@@ -56,6 +56,17 @@ included here:
 Every scene is predicted independently, with a straightforward
 prepare → infer → threshold → clean → export pipeline.
 
+**Example output** (bundled `--sample` scenes — Sentinel-1 VV / flood
+probability / probable-flood overlay):
+
+`sar` (Sentinel-1 only, 2.76 km² detected):
+
+![sar sample output](docs/images/sar_preview.png)
+
+`multisensor` (Sentinel-1 + Sentinel-2, 7.22 km² detected):
+
+![multisensor sample output](docs/images/multisensor_preview.png)
+
 ### Setup
 
 `geoint-insight setup` (see Install above) downloads both checkpoints into
@@ -179,6 +190,11 @@ below. Validated against the real fine-tuned checkpoint: detected rice extent
 lines up closely with the visible paddy field boundaries in the source
 imagery, both in the bundled sample and in larger real multi-date crops from
 the same area.
+
+**Example output** (bundled `--sample` scene — RGB + rice mask / probability /
+clean mask, 1,068 rai / 1.71 km² detected):
+
+![rice sample output](docs/images/rice_preview.png)
 
 Needs the optional `rice` extra (a different terratorch version than
 `multisensor` — don't install both extras in one environment without checking
