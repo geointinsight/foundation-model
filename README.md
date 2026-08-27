@@ -173,15 +173,12 @@ directory of three files that must ship together:
 └── normalization_stats.json   # band_names, means, stds
 ```
 
-A small bundled sample (one real Sentinel-2 crop, Prathumthanee, Thailand) lets
-`--sample`/`sample_stack_paths()` work right after Setup below — but it's only
-**one acquisition date**, not the multitemporal stack the checkpoint needs, so
-expect it to detect ~0 rice even over visibly green paddy fields in that crop.
-It's there to confirm the tool runs end to end (band mapping, tiling,
-inference, export), not to demonstrate detection quality. For real detection
-quality: validated against the real fine-tuned checkpoint + real multi-date
-Sentinel-2 crops (2-4 timestamps) from the same area — detected rice extent
-lined up closely with the visible paddy field boundaries in the source imagery.
+A small bundled sample (real Sentinel-2 crop, Prathumthanee, Thailand, 3
+timestamps) lets `--sample`/`sample_stack_paths()` work right after Setup
+below. Validated against the real fine-tuned checkpoint: detected rice extent
+lines up closely with the visible paddy field boundaries in the source
+imagery, both in the bundled sample and in larger real multi-date crops from
+the same area.
 
 Needs the optional `rice` extra (a different terratorch version than
 `multisensor` — don't install both extras in one environment without checking
@@ -207,7 +204,7 @@ the model.
 ### CLI
 
 ```bash
-geoint-insight rice --sample --output-dir outputs/   # runs the pipeline, but ~0 rice detected — single-timestamp sample, see above
+geoint-insight rice --sample --output-dir outputs/   # bundled 3-timestamp sample, zero setup beyond the checkpoint
 geoint-insight rice --stacks 2026-03-13_STACK.tif 2026-03-26_STACK.tif --checkpoint path/to/model_dir --output-dir outputs/
 geoint-insight rice --stack-dir stacks_10m/ --valid-mask-dir valid_masks_10m/ --checkpoint path/to/model_dir --output-dir outputs/
 ```

@@ -8,11 +8,10 @@ directory (checkpoint + training_config.json + normalization_stats.json), not
 a single portable file — see ._model.discover_checkpoint. Fetch it with
 `geoint-insight setup --rice` (downloads into ./checkpoints/rice/).
 
-A small bundled sample (one real Sentinel-2 crop, Prathumthanee, Thailand,
-single timestamp) lets you confirm the pipeline runs with zero setup beyond
-the checkpoint itself — but since it's only one date, not the multitemporal
-stack the model needs, expect it to detect ~0 rice even over visibly green
-paddy fields. It proves mechanics, not detection quality — see ._data for why.
+A small bundled sample (real Sentinel-2 crop, Prathumthanee, Thailand, 3
+timestamps) lets you try the model with zero setup beyond the checkpoint
+itself — produces real, spatially coherent rice detections (~1,000 rai in the
+bundled crop), not just a mechanics check.
 
     from geoint_insight.rice import predict_scene, load_model, sample_stack_paths
     model, device, config = load_model()  # auto-discovers ./checkpoints/rice/

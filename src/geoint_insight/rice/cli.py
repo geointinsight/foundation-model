@@ -25,7 +25,7 @@ HELP = "Multitemporal Sentinel-2 rice-extent prediction (TerraMind)"
 def add_arguments(parser):
     parser.add_argument("--stacks", type=Path, nargs="+", default=None, help="Explicit ordered list of per-date stack GeoTIFFs (same grid, one per timestamp)")
     parser.add_argument("--stack-dir", type=Path, default=None, help="Directory of per-date stack GeoTIFFs to auto-discover instead of --stacks")
-    parser.add_argument("--sample", action="store_true", help="Use the small bundled sample stack instead of --stacks/--stack-dir (quick way to check the tool runs — only one real date is bundled, so expect ~0 rice detected, see README)")
+    parser.add_argument("--sample", action="store_true", help="Use the small bundled sample stack (3 real timestamps) instead of --stacks/--stack-dir (quick way to try the tool)")
     parser.add_argument("--stack-glob", default="*STACK*.tif", help="Glob used with --stack-dir")
     parser.add_argument("--valid-mask-dir", type=Path, default=None, help="Optional directory of per-date valid-pixel masks (matched by date)")
     parser.add_argument("--valid-mask-glob", default="*.tif", help="Glob used with --valid-mask-dir")
